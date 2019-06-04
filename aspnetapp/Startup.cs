@@ -48,7 +48,6 @@ namespace aspnetapp
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
 
