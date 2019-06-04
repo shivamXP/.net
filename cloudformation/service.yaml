@@ -1,0 +1,645 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: HOV ECS Cloudformation template that deploys an ECS Service
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+    - Label:
+        default: 'ESC Service Configuration'
+      Parameters:
+      - ALBListenerArn
+      - ALBListenerRuleConditionField
+      - ALBListenerRuleConditionValue
+      - ALBListenerRulePriority
+      - ClusterName
+      - DesiredTaskCount
+      - LoadBalancerDeregistrationDelay
+      - MinContainerCapacity
+      - MaxContainerCapacity
+      - CWLogGroupName
+    - Label:
+        default: 'Container Configuration'
+      Parameters:
+      - ContainerListeningPort
+      - ContainerListeningProtocol
+      - HealthCheckPath
+      - ImageRepository
+      - ImageTag
+      - CPU
+      - Memory
+    - Label:
+        default: 'HOV Configuration'
+      Parameters:
+      - AppId
+      - BizUnit
+      - EnvType
+      - HovEnv
+      - WorkloadType
+      - DeploymentZone
+    ParameterLabels:
+      ALBListenerArn:
+        default: Listener ARN
+      ALBListenerRuleConditionField:
+        default: Listener Rule Condition Name
+      ALBListenerRuleConditionValue:
+        default: Listener Rule Condition Value
+      ALBListenerRulePriority:
+        default: Listener Rule Priority
+      ClusterName:
+        default: Cluster name
+      CWLogGroupName:
+        default: Cloudwatch log group name
+      DesiredTaskCount:
+        default: Desired number of tasks
+      LoadBalancerDeregistrationDelay:
+        default: LB deregistration delay
+      LogsRetentionInDays:
+        default: Logs retention in days
+      MinContainerCapacity:
+        default: Minimum number of tasks
+      MaxContainerCapacity:
+        default: Maximum number of tasks
+      ContainerListeningPort:
+        default: Container listening port
+      ContainerListeningProtocol:
+        default: Container listening protocol
+      HealthCheckPath:
+        default: Health Check Path
+      ImageRepository:
+        default: ECR repository name
+      ImageTag:
+        default: ECR repository image tag
+      CPU:
+        default: CPU allocation
+      Memory:
+        default: Memory allocation
+      AppId:
+        default: Application ID or name
+      BizUnit:
+        default: Business unit short name
+      EnvType:
+        default: Environment type
+      HovEnv:
+        default: HOV environment
+      WorkloadType:
+        default: Workload type
+      DeploymentZone:
+        default: Deployment zone
+Parameters:
+  ClusterName:
+    Description: ECS Cluster for this service
+    Type: String
+  CWLogGroupName:
+    Description: Existing CloudWatch log group name, 
+    Type: String
+    Default: None
+  ALBListenerArn:
+    Description: Existing ALB listener ARN from the cluster stack
+    Type: String
+  ALBListenerRuleConditionField:
+    Description: The name of the condition that you want to define
+    Default: path-pattern
+    AllowedValues: [path-pattern, host-header]
+    Type: String
+  ALBListenerRuleConditionValue:
+    Description: The value for the field that you specified in the ALBListenerRuleConditionField property.
+    Default: '*'
+    Type: String
+    MinLength: 1
+  ALBListenerRulePriority:
+    Description: The priority for the rule. Elastic Load Balancing evaluates rules in priority order, from the lowest value to the highest value.
+    Default: 1
+    Type: Number
+  AppId: 
+    Description: Application ID or name
+    Type: String
+    MinLength: 1
+  ContainerListeningPort: 
+    ConstraintDescription: must be within a range of 1 to 65535,
+    Default: 8080
+    Description: TCP Port the Application listens on
+    MaxValue: 65535
+    MinValue: 1
+    Type: Number
+  ContainerListeningProtocol:
+    AllowedValues: [HTTP, HTTPS]
+    ConstraintDescription: must be HTTP, HTTPS
+    Default: HTTP
+    Description: HTTP, or HTTPS protocol listener
+    Type: String
+  HealthCheckPath: 
+    Default: '/'
+    Description: "Specifies the application URL path to check. Example: /status or /check"
+    Type: String
+  BizUnit: 
+    Description: Business Unit for the application
+    Type: String
+    MinLength: 1
+  EnvType:
+    AllowedValues: [dev, test, accept, uat, prod, prod-pub, shared]
+    ConstraintDescription: must be dev, test, acceptance, UAT, Sahred or prod.
+    Default: test
+    Description: Dev, Test, Accept, UAT, Shared or Prod
+    Type: String
+  HovEnv:
+    AllowedValues: [prod, qa]
+    ConstraintDescription: must be prod or qa
+    Default: prod
+    Description: set to Qa to access QA HOV Templates and Scripts
+    Type: String
+  DesiredTaskCount:
+    Description: 'The number of simultaneous tasks, that you want to run on the cluster.'
+    Type: Number
+    Default: 2
+    ConstraintDescription: 'Must be >= 1'
+    MinValue: 1
+  LoadBalancerDeregistrationDelay:
+    Description: 'The amount time (in seconds) to wait before changing the state of a deregistering target from draining to unused.'
+    Type: Number
+    Default: 900
+    ConstraintDescription: 'Must be in the range [0-3600]'
+    MinValue: 0
+    MaxValue: 3600      
+  MinContainerCapacity:
+    Description: 'The minimum number of simultaneous tasks.'
+    Type: Number
+    Default: 1
+    ConstraintDescription: 'Must be >= 1'
+    MinValue: 1
+  MaxContainerCapacity:
+    Description: 'The maximum number of simultaneous tasks.'
+    Type: Number
+    Default: 2
+    ConstraintDescription: 'Must be >= 1'
+    MinValue: 1
+  ImageRepository:
+    Type: String
+    Default: ''
+    Description: Docker image repository
+  ImageTag:
+    Type: String
+    Default: latest
+    Description: Docker image tag
+  CPU:
+    Type: Number
+    Default: 256
+    Description: The number of cpu units used by the task.
+  Memory:
+    Type: Number
+    Default: 512
+    Description: The amount (in MiB) of memory used by the task.
+  WorkloadType:
+    AllowedValues: [app, web, db, data, other]
+    ConstraintDescription: must be app, web, db, data, OR other
+    Default: web
+    Description: 'Types of workload: app, web, db, data, OR other'
+    Type: String
+  DeploymentZone:
+    AllowedValues: [private, dmz]
+    ConstraintDescription: must be private or dmz.
+    Default: private
+    Description: Private or DMZ
+    Type: String
+Conditions:
+  IsInternal: !Equals [ !Ref DeploymentZone, private]
+
+Mappings:
+  AWSRegion2CFTemplateBucket:
+    ap-northeast-1:
+      prod:
+        verisk-cloud-formation-templates-ap-northeast-1
+      qa:
+        qa-verisk-cloud-formation-templates-ap-northeast-1
+    ap-northeast-2:   
+      prod:
+        verisk-cloud-formation-templates-ap-northeast-2
+      qa:
+        qa-verisk-cloud-formation-templates-ap-northeast-2    
+    ap-south-1:
+      prod:
+        verisk-cloud-formation-templates-ap-south-1
+      qa:
+        qa-verisk-cloud-formation-templates-ap-south-1
+    ap-southeast-1:
+      prod:
+        verisk-cloud-formation-templates-ap-southeast-1
+      qa:
+        qa-verisk-cloud-formation-templates-ap-southeast-1
+    ap-southeast-2:
+      prod:
+        verisk-cloud-formation-templates-ap-southeast-2
+      qa:
+        qa-verisk-cloud-formation-templates-ap-southeast-2
+    ca-central-1:
+      prod: 
+        verisk-cloud-formation-templates-ca-central-1
+      qa:
+        qa-verisk-cloud-formation-templates-ca-central-1    
+    eu-central-1:
+      prod:
+        verisk-cloud-formation-templates-eu-central-1
+      qa:
+        qa-verisk-cloud-formation-templates-eu-central-1
+    eu-west-1:
+      prod:
+        verisk-cloud-formation-templates-eu-west
+      qa:
+        qa-verisk-cloud-formation-templates-eu-west
+    eu-west-2:
+      prod: 
+        verisk-cloud-formation-templates-eu-west-2
+      qa:
+        qa-verisk-cloud-formation-templates-eu-west-2
+    eu-west-3:
+      prod: 
+        verisk-cloud-formation-templates-eu-west-3
+      qa:
+        qa-verisk-cloud-formation-templates-eu-west-3    
+    sa-east-1:
+      prod:
+        verisk-cloud-formation-templates-sa-east-1
+      qa:
+        qa-verisk-cloud-formation-templates-sa-east-1
+    us-east-1:
+      prod:
+        verisk-cloud-formation-templates-us-east
+      qa:
+        qa-verisk-cloud-formation-templates-us-east
+    us-east-2:
+      prod:
+        verisk-cloud-formation-templates-us-east-2
+      qa:
+        qa-verisk-cloud-formation-templates-us-east-2
+    us-west-1:
+      prod:
+        verisk-cloud-formation-templates-us-west1
+      qa:
+        qa-verisk-cloud-formation-templates-us-west1
+    us-west-2:
+      prod:
+        verisk-cloud-formation-templates-us-west2
+      qa:
+        qa-verisk-cloud-formation-templates-us-west2
+  AWSRegion2LambdaFunctionBucket:
+    ap-northeast-1:
+      prod:
+        verisk-cloud-lambda-functions-ap-northeast-1
+      qa:
+        qa-verisk-cloud-lambda-functions-ap-northeast-1
+    ap-northeast-2:
+      prod:
+        verisk-cloud-lambda-functions-ap-northeast-2
+      qa:
+        qa-verisk-cloud-lambda-functions-ap-northeast-2    
+    ap-south-1:
+      prod:
+        verisk-cloud-lambda-functions-ap-south-1
+      qa:
+        qa-verisk-cloud-lambda-functions-ap-south-1
+    ap-southeast-1:
+      prod:
+        verisk-cloud-lambda-functions-ap-southeast-1
+      qa:
+        qa-verisk-cloud-lambda-functions-ap-southeast-1
+    ap-southeast-2:
+      prod:
+        verisk-cloud-lambda-functions-ap-southeast-2
+      qa:
+        qa-verisk-cloud-lambda-functions-ap-southeast-2
+    ca-central-1:
+      prod:
+        verisk-cloud-lambda-functions-ca-central-1
+      qa:
+        qa-verisk-cloud-lambda-functions-ca-central-1    
+    eu-central-1:
+      prod:
+        verisk-cloud-lambda-functions-eu-central-1
+      qa:
+        qa-verisk-cloud-lambda-functions-eu-central-1
+    eu-west-1:
+      prod:
+        verisk-cloud-lambda-functions-eu-west
+      qa:
+        qa-verisk-cloud-lambda-functions-eu-west
+    eu-west-2:
+      prod:
+        verisk-cloud-lambda-functions-eu-west-2
+      qa:
+        qa-verisk-cloud-lambda-functions-eu-west-2
+    eu-west-3:
+      prod:
+        verisk-cloud-lambda-functions-eu-west-3
+      qa:
+        qa-verisk-cloud-lambda-functions-eu-west-3    
+    sa-east-1:
+      prod:
+        verisk-cloud-lambda-functions-sa-east-1
+      qa:
+        qa-verisk-cloud-lambda-functions-sa-east-1
+    us-east-1:
+      prod:
+        verisk-cloud-lambda-functions-us-east
+      qa:
+        qa-verisk-cloud-lambda-functions-us-east
+    us-east-2:
+      prod:
+        verisk-cloud-lambda-functions-us-east-2
+      qa:
+        qa-verisk-cloud-lambda-functions-us-east-2
+    us-west-1:
+      prod:
+        verisk-cloud-lambda-functions-us-west1
+      qa:
+        qa-verisk-cloud-lambda-functions-us-west1
+    us-west-2:
+      prod:
+        verisk-cloud-lambda-functions-us-west2
+      qa:
+        qa-verisk-cloud-lambda-functions-us-west2
+  AWSRegion2MetaDataBucket:
+    ap-northeast-1:
+      prod:
+        verisk-cloud-metadata-ap-northeast-1
+      qa:
+        qa-verisk-cloud-metadata-ap-northeast-1
+    ap-northeast-2:
+      prod:
+        verisk-cloud-metadata-ap-northeast-2
+      qa:
+        qa-verisk-cloud-metadata-ap-northeast-2    
+    ap-south-1:
+      prod:
+        verisk-cloud-metadata-ap-south-1
+      qa:
+        qa-verisk-cloud-metadata-ap-south-1
+    ap-southeast-1:
+      prod:
+        verisk-cloud-metadata-ap-southeast-1
+      qa:
+        qa-verisk-cloud-metadata-ap-southeast-1
+    ap-southeast-2:
+      prod:
+        verisk-cloud-metadata-ap-southeast-2
+      qa:
+        qa-verisk-cloud-metadata-ap-southeast-2
+    ca-central-1:
+      prod:
+        verisk-cloud-metadata-ca-central-1
+      qa:
+        qa-verisk-cloud-metadata-ca-central-1    
+    eu-central-1:
+      prod:
+        verisk-cloud-metadata-eu-central-1
+      qa:
+        qa-verisk-cloud-metadata-eu-central-1
+    eu-west-1:
+      prod:
+        verisk-cloud-metadata-eu-west
+      qa:
+        qa-verisk-cloud-metadata-eu-west
+    sa-east-1:
+      prod:
+        verisk-cloud-metadata-sa-east-1
+      qa:
+        qa-verisk-cloud-metadata-sa-east-1
+    us-east-1:
+      prod:
+        verisk-cloud-metadata-us-east
+      qa:
+        qa-verisk-cloud-metadata-us-east
+    us-east-2:
+      prod:
+        verisk-cloud-metadata-us-east-2
+      qa:
+        qa-verisk-cloud-metadata-us-east-2
+    eu-west-2:
+      prod:
+        verisk-cloud-metadata-eu-west-2
+      qa:
+        qa-verisk-cloud-metadata-eu-west-2
+    eu-west-3:
+      prod:
+        verisk-cloud-metadata-eu-west-3
+      qa:
+        qa-verisk-cloud-metadata-eu-west-3    
+    us-west-1:
+      prod:
+        verisk-cloud-metadata-us-west1
+      qa:
+        qa-verisk-cloud-metadata-us-west1
+    us-west-2:
+      prod:
+        verisk-cloud-metadata-us-west2
+      qa:
+        qa-verisk-cloud-metadata-us-west2
+  
+Resources:
+  
+  LookupVpcMetadata:
+    Properties:
+      ServiceToken:
+        Fn::ImportValue: LookupVpcMetadataFunction
+      bizUnit: {Ref: BizUnit}
+      appId: {Ref: AppId}
+      deploymentZone: {Ref: DeploymentZone}
+      envType: {Ref: EnvType}
+      stackName: {Ref: 'AWS::StackName'}
+      region: {Ref: 'AWS::Region'}
+      s3BucketName:
+        Fn::FindInMap:
+        - AWSRegion2MetaDataBucket
+        - {Ref: 'AWS::Region'}
+        - {Ref: HovEnv}
+      s3VpcObjectName: vpc-mappings.latest
+      workloadType: {Ref: WorkloadType}
+    Type: Custom::VPCMetadataLookup
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${AppId}-family
+      ContainerDefinitions:
+        - Name: !Sub ${AppId}-container
+          Cpu: !Ref CPU
+          Essential: true
+          Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ImageRepository}:${ImageTag}
+          Memory: !Ref Memory
+          PortMappings:
+            - ContainerPort: !Ref ContainerListeningPort
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CWLogGroupName
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: !Ref AppId
+
+      Volumes:
+        - Name: data
+  Service:
+    DependsOn: ALBListenerRule
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ClusterName
+      DesiredCount: !Ref DesiredTaskCount
+      LoadBalancers:
+        - ContainerName: !Sub ${AppId}-container
+          ContainerPort: !Ref ContainerListeningPort
+          TargetGroupArn: !Ref ECSTargetGroup
+      Role: !Ref ServiceRole
+      TaskDefinition: !Ref TaskDefinition
+  ECSTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: !Ref HealthCheckPath
+      HealthCheckProtocol: !Ref ContainerListeningProtocol
+      HealthCheckTimeoutSeconds: 2
+      HealthyThresholdCount: 2
+      Name: !Sub ${AppId}-TG
+      Port: !Ref ContainerListeningPort
+      Protocol: !Ref ContainerListeningProtocol
+      Matcher:
+        HttpCode: 200-299
+      VpcId: 
+        Fn::GetAtt: [LookupVpcMetadata, vpcId]
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: !Ref LoadBalancerDeregistrationDelay
+  ALBListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref ECSTargetGroup
+      Conditions:
+        - Field: !Ref ALBListenerRuleConditionField
+          Values: [!Ref ALBListenerRuleConditionValue]
+      ListenerArn: !Ref ALBListenerArn
+      Priority: !Ref ALBListenerRulePriority
+  ServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: ecs-service
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: [
+              'elasticloadbalancing:DeregisterInstancesFromLoadBalancer',
+              'elasticloadbalancing:DeregisterTargets',
+              'elasticloadbalancing:Describe*',
+              'elasticloadbalancing:RegisterInstancesWithLoadBalancer',
+              'elasticloadbalancing:RegisterTargets',
+              'ec2:Describe*',
+              'ec2:AuthorizeSecurityGroupIngress'
+            ]
+            Resource: '*'
+  ScalableTargetRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: 'application-autoscaling.amazonaws.com'
+          Action: 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+      - PolicyName: ecs
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'ecs:DescribeServices'
+            - 'ecs:UpdateService'
+            Resource: '*'
+      - PolicyName: cloudwatch
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'cloudwatch:DescribeAlarms'
+            Resource: '*'
+  ScalableTarget:
+    Type: 'AWS::ApplicationAutoScaling::ScalableTarget'
+    Properties:
+      MaxCapacity: !Ref MaxContainerCapacity
+      MinCapacity: !Ref MinContainerCapacity
+      ResourceId: !Sub
+      - 'service/${ClusterName}/${Service}'
+      - Cluster: !Ref ClusterName
+        Service: !GetAtt 'Service.Name'
+      RoleARN: !GetAtt 'ScalableTargetRole.Arn'
+      ScalableDimension: 'ecs:service:DesiredCount'
+      ServiceNamespace: ecs
+  ScaleUpPolicy:
+    Type: 'AWS::ApplicationAutoScaling::ScalingPolicy'
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-scale-up'
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref ScalableTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: PercentChangeInCapacity
+        Cooldown: 300
+        MinAdjustmentMagnitude: 1
+        StepAdjustments:
+        - MetricIntervalLowerBound: 0
+          ScalingAdjustment: 25
+  ScaleDownPolicy:
+    Type: 'AWS::ApplicationAutoScaling::ScalingPolicy'
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-scale-down'
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref ScalableTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: PercentChangeInCapacity
+        Cooldown: 300
+        MinAdjustmentMagnitude: 1
+        StepAdjustments:
+        - MetricIntervalUpperBound: 0
+          ScalingAdjustment: -25
+  CPUUtilizationHighAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: 'Service is running out of CPU'
+      Namespace: 'AWS/ECS'
+      Dimensions:
+      - Name: ClusterName
+        Value: !Ref ClusterName
+      - Name: ServiceName
+        Value: !GetAtt 'Service.Name'
+      MetricName: CPUUtilization
+      ComparisonOperator: GreaterThanThreshold
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 60
+      AlarmActions:
+      - !Ref ScaleUpPolicy
+  CPUUtilizationLowAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription: 'Service is wasting CPU'
+      Namespace: 'AWS/ECS'
+      Dimensions:
+      - Name: ClusterName
+        Value: !Ref ClusterName
+      - Name: ServiceName
+        Value: !GetAtt 'Service.Name'
+      MetricName: CPUUtilization
+      ComparisonOperator: LessThanThreshold
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 30
+      AlarmActions:
+      - !Ref ScaleDownPolicy
+  
