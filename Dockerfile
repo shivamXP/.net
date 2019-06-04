@@ -16,4 +16,4 @@ FROM mcr.microsoft.com/dotnet/core/aspnet:2.2 AS runtime
 WORKDIR /app
 COPY --from=build /app/aspnetapp/out ./
 ENTRYPOINT ["dotnet", "aspnetapp.dll","--urls", "http://0.0.0.0:80"]
-EXPOSE 5000
+EXPOSE 5000 80 443
