@@ -1,46 +1,13 @@
 [
-    {
-        "ParameterKey": "ALBArn",
-        "ParameterValue": "arn:aws:elasticloadbalancing:us-east-1:063114128614:loadbalancer/app/appShivam-ALB/bfb6e7d3a81a7eac"
-    },
-    {
-        "ParameterKey": "ALBListenerArn",
-        "ParameterValue": "arn:aws:elasticloadbalancing:us-east-1:063114128614:listener/app/appShivam-ALB/bfb6e7d3a81a7eac/dd3ce06a88a67d80"
-    },
-    {
-        "ParameterKey": "CWLogGroupName",
-        "ParameterValue": "appShivam"
-    },
-    {
-        "ParameterKey": "ClusterName",
-        "ParameterValue": "shivamCLuster"
-    },
-    {
-        "ParameterKey": "ContainerListeningPort",
-        "ParameterValue": "80"
-    },
-    {
-        "ParameterKey": "ContainerListeningProtocol",
-        "ParameterValue": "HTTP"
-    },
-    {
-        "ParameterKey": "ImageRepository",
-        "ParameterValue": "i25077"
-    },
-    {
-        "ParameterKey": "ImageTag",
-        "ParameterValue": "xxxx"
-    },
-    {
-        "ParameterKey": "AppId",
-        "ParameterValue": "appProdShivam"
-    },
-    {
-        "ParameterKey": "BizUnit",
-        "ParameterValue": "ist"
-    },
-    {
-        "ParameterKey": "ALBListenerRulePriority",
-        "ParameterValue": "100"
-    }
-  ]
+    "ALBArn"="arn:aws:elasticloadbalancing:us-east-1:063114128614:loadbalancer/app/appShivam-ALB/bfb6e7d3a81a7eac",
+    "ALBListenerArn" = "arn:aws:elasticloadbalancing:us-east-1:063114128614:listener/app/appShivam-ALB/bfb6e7d3a81a7eac/dd3ce06a88a67d80",
+    "CWLogGroupName" = "appShivam",
+    "ClusterName" = "shivamCLuster",
+    "ContainerListeningPort" = "80",
+    "ContainerListeningProtocol" = "HTTP",
+    "ImageRepository" = "i25077",
+    "ImageTag" = "xxxx",
+    "AppId" = "appProdShivam",
+    "BizUnit" = "ist",
+    "ALBListenerRulePriority" = "100"
+]
