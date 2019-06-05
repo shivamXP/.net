@@ -1,25 +1,42 @@
-{   
-    "WorkloadType"	: "web",	
-    "MinContainerCapacity"	: "1",	
-    "Memory" :	"128",	
-    "MaxContainerCapacity" : "2"	,
-    "LoadBalancerDeregistrationDelay" :	"900"	,
-    "ImageTag" :	"app1"	,
-    "ImageRepository" :	"i25077",
-    "HovEnv" :	"prod"	,
-    "HealthCheckPath" :	"/"	,
-    "EnvType" :	"test"	,
-    "DesiredTaskCount" :	"2",
-    "DeploymentZone" :	"private"	,
-    "ContainerListeningProtocol" :	"HTTP"	,
-    "ContainerListeningPort" :	"80"	,
-    "ClusterName" :	"shivamCLuster"	,
-    "CWLogGroupName" :	"appShivam"	,
-    "CPU" :	"128"	,
-    "BizUnit" :	"ist"	,
-    "AppId" :	"app1PreProd"	,
-    "ALBListenerRulePriority" :	"1"	,
-    "ALBListenerRuleConditionValue" :	"*"	,
-    "ALBListenerRuleConditionField" :	"path-pattern"	,
-    "ALBListenerArn" :	"arn:aws:elasticloadbalancing:us-east-1:063114128614:listener/app/appShivam-ALB/bfb6e7d3a81a7eac/dd3ce06a88a67d80"
-}    
+[
+    {
+        "ParameterKey": "ALBListenerArn",
+        "ParameterValue": "arn:aws:elasticloadbalancing:us-east-1:063114128614:listener/app/appShivam-ALB/bfb6e7d3a81a7eac/2b536db11f1d26ef"
+    },
+    {
+        "ParameterKey": "CWLogGroupName",
+        "ParameterValue": "appShivam"
+    },
+    {
+        "ParameterKey": "ClusterName",
+        "ParameterValue": "shivamCLuster"
+    },
+    {
+        "ParameterKey": "ContainerListeningPort",
+        "ParameterValue": "80"
+    },
+    {
+        "ParameterKey": "ContainerListeningProtocol",
+        "ParameterValue": "HTTP"
+    },
+    {
+        "ParameterKey": "ImageRepository",
+        "ParameterValue": "i25077"
+    },
+    {
+        "ParameterKey": "ImageTag",
+        "ParameterValue": "xxxx"
+    },
+    {
+        "ParameterKey": "AppId",
+        "ParameterValue": "appPreProdShivam"
+    },
+    {
+        "ParameterKey": "BizUnit",
+        "ParameterValue": "ist"
+    },
+    {
+        "ParameterKey": "ALBListenerRulePriority",
+        "ParameterValue": "100"
+    }
+  ]

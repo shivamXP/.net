@@ -1,0 +1,6 @@
+{
+    "clustername": "HarshaClust",
+    "servicegreenname": "HarshaServiceGreen-Service-1185WJAOAJGTX",
+    "servicebluename": "HarshaServiceBlue-Service-17F8W9ZLFDTHJ",
+    "albarn": "arn:aws:elasticloadbalancing:us-east-1:063114128614:loadbalancer/app/HarshaApp-ALB/1064f8f46bd7bc8e"
+}

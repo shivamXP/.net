@@ -1,1 +1,2 @@
-aws cloudformation deploy --template-file service.yaml  --stack-name shivamServiceProd --parameter-overrides ImageTag=app2 --capabilities CAPABILITY_IAM
+aws cloudformation deploy --template-file service.yaml  --stack-name shivamServiceProd --parameter-overrides ImageTag=app2 --capabilities CAPABILITY_AUTO_EXPAND 
+aws cloudformation create-stack --stack-name shivamServicePreProd --template-body ./cloudformation/service.yaml --parameters    ./cloudformation/ServiceParameters.json  --capabilities CAPABILITY_AUTO_EXPAND 
