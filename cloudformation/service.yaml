@@ -6,6 +6,7 @@ Metadata:
     - Label:
         default: 'ESC Service Configuration'
       Parameters:
+      - ALBArn
       - ALBListenerArn
       - ALBListenerRuleConditionField
       - ALBListenerRuleConditionValue
@@ -92,6 +93,9 @@ Parameters:
     Description: Existing CloudWatch log group name, 
     Type: String
     Default: None
+  ALBArn: 
+    Description: Existing Load balancer arn 
+    Type: String
   ALBListenerArn:
     Description: Existing ALB listener ARN from the cluster stack
     Type: String
@@ -107,7 +111,7 @@ Parameters:
     MinLength: 1
   ALBListenerRulePriority:
     Description: The priority for the rule. Elastic Load Balancing evaluates rules in priority order, from the lowest value to the highest value.
-    Default: 1
+    Default: 100
     Type: Number
   AppId: 
     Description: Application ID or name
@@ -155,7 +159,7 @@ Parameters:
   LoadBalancerDeregistrationDelay:
     Description: 'The amount time (in seconds) to wait before changing the state of a deregistering target from draining to unused.'
     Type: Number
-    Default: 900
+    Default: 300
     ConstraintDescription: 'Must be in the range [0-3600]'
     MinValue: 0
     MaxValue: 3600      
@@ -643,3 +647,120 @@ Resources:
       AlarmActions:
       - !Ref ScaleDownPolicy
   
+  LambdaBlueGreenTerminateRole :
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+          - Effect: Allow
+            Principal:
+              Service: [lambda.amazonaws.com]
+            Action: ['sts:AssumeRole']
+        Path: /
+        Policies:
+        - PolicyName: LambdaBlueGreenTerminatepolicy
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action: [
+                "elasticloadbalancing:*",
+                "ec2:DescribeAccountAttributes",
+                "ec2:DescribeAddresses",
+                "ec2:DescribeInternetGateways",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeVpcClassicLink",
+                "ec2:DescribeInstances",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:DescribeClassicLinkInstances",
+                "ec2:DescribeRouteTables",
+                "ecs:*"
+              ]
+              Resource: '*'
+  LambdaBlueGreenTerminate:
+    Type: "AWS::Lambda::Function"
+    DependsOn: 
+      - Service 
+      - ALBListenerRule
+      - ECSTargetGroup
+    Properties:
+      Environment:
+        Variables:
+          servicename: !GetAtt 'Service.Name'
+          clustername: !Ref ClusterName
+          loadbalancerarn: !Ref ALBArn
+      Handler: "index.lambda_handler"
+      Role: 
+        Fn::GetAtt: ["LambdaBlueGreenTerminateRole", "Arn"]
+      Code:
+        ZipFile: !Sub |
+          import json
+          import boto3
+          import os
+          def lambda_handler(event, context):
+              elbvclient = boto3.client('elbv2')
+              client = boto3.client('ecs')
+              servicename = os.environ["servicename"]
+              clustername = os.environ["clustername"]   
+              loadbalancerarn = os.environ["loadbalancerarn"] 
+                      
+              response_servicedetails = client.describe_services(
+                  cluster=clustername,
+                  services=[
+                      servicename
+                  ]
+              )
+              
+              for x in range(0, len(response_servicedetails['services']) ):
+                  targetgroupservice = response_servicedetails['services'][0]['loadBalancers'][0]['targetGroupArn']
+              
+              response_tgdescription = elbvclient.describe_target_groups(
+                  TargetGroupArns=[
+                      targetgroupservice
+                  ]
+              )
+              
+              response_albinfo = elbvclient.describe_listeners(
+                  LoadBalancerArn=loadbalancerarn
+              )
+              
+              for x in range(0, len(response_albinfo['Listeners']) ):
+                  thisarn = response_albinfo['Listeners'][x]['ListenerArn']
+                  response_ListARNinfo = elbvclient.describe_rules(
+                      ListenerArn = thisarn
+                  )
+
+                  for y in range(0, len(response_ListARNinfo['Rules']) ):
+                      if(response_ListARNinfo['Rules'][y]['Priority']=="default"):
+                          default_rulearn = response_ListARNinfo['Rules'][y]['RuleArn']
+                          response_modifylistfordr  = elbvclient.modify_listener(
+                              ListenerArn = thisarn,
+                              DefaultActions=[
+                                  {
+                                      'Type':  'fixed-response',    
+                                      'FixedResponseConfig': {
+                                          'MessageBody': 'Sorry! This page has been moved!',
+                                          'StatusCode': '400',
+                                          'ContentType': 'text/html'
+                                      }
+                                  }
+                              ]
+                                  
+                          )
+                      else:
+                          rule1arn = response_ListARNinfo['Rules'][y]['RuleArn']
+                          tgarnfromruleextraction = response_ListARNinfo['Rules'][y]['Actions'][0]['TargetGroupArn']
+                          if(targetgroupservice == tgarnfromruleextraction ):
+                              response_ruledeletion = elbvclient.delete_rule(
+                                  RuleArn=rule1arn
+                              )
+                              response_tgdeletion = elbvclient.delete_target_group(
+                                  TargetGroupArn=tgarnfromruleextraction
+                              ) 
+      Runtime: python3.6
+
+Outputs: 
+  ECSServiceName:
+    Description: 'ECS service name.'
+    Value: !GetAtt 'Service.Name'
