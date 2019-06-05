@@ -5,7 +5,7 @@
     },
     {
         "ParameterKey": "ALBListenerArn",
-        "ParameterValue": "arn:aws:elasticloadbalancing:us-east-1:063114128614:listener/app/appShivam-ALB/bfb6e7d3a81a7eac/2b536db11f1d26ef"
+        "ParameterValue": "arn:aws:elasticloadbalancing:us-east-1:063114128614:listener/app/appShivam-ALB/bfb6e7d3a81a7eac/dd3ce06a88a67d80"
     },
     {
         "ParameterKey": "CWLogGroupName",
@@ -33,7 +33,7 @@
     },
     {
         "ParameterKey": "AppId",
-        "ParameterValue": "appPreProdShivam"
+        "ParameterValue": "appProdShivam"
     },
     {
         "ParameterKey": "BizUnit",
