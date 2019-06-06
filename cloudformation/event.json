@@ -1,6 +1,6 @@
 {
     "clustername": "shivamCLuster",
     "servicegreenname": "xxxx",
-    "servicebluename": "shivamServiceProd-Service-1EOY9PZE42PDS",
+    "servicebluename": "yyyy",
     "albarn": "arn:aws:elasticloadbalancing:us-east-1:063114128614:loadbalancer/app/appShivam-ALB/bfb6e7d3a81a7eac"
 }
