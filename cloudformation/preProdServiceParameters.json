@@ -1,19 +1,19 @@
 [
     {
         "ParameterKey": "ALBArn",
-        "ParameterValue": "arn:aws:elasticloadbalancing:us-east-1:063114128614:loadbalancer/app/appShivam-ALB/bfb6e7d3a81a7eac"
+        "ParameterValue": "arn:aws:elasticloadbalancing:us-east-1:063114128614:loadbalancer/app/ecsapp-ALB/9c4fcb58c279b5f3"
     },
     {
         "ParameterKey": "ALBListenerArn",
-        "ParameterValue": "arn:aws:elasticloadbalancing:us-east-1:063114128614:listener/app/appShivam-ALB/bfb6e7d3a81a7eac/2b536db11f1d26ef"
+        "ParameterValue": "arn:aws:elasticloadbalancing:us-east-1:063114128614:listener/app/ecsapp-ALB/9c4fcb58c279b5f3/cf1e72c531ede398"
     },
     {
         "ParameterKey": "CWLogGroupName",
-        "ParameterValue": "appShivam"
+        "ParameterValue": "ecsapp"
     },
     {
         "ParameterKey": "ClusterName",
-        "ParameterValue": "shivamCLuster"
+        "ParameterValue": "sequelDemoEcsCluster"
     },
     {
         "ParameterKey": "ContainerListeningPort",
@@ -33,7 +33,7 @@
     },
     {
         "ParameterKey": "AppId",
-        "ParameterValue": "appPreProdShivam-yyyy"
+        "ParameterValue": "appPreProdSequel-yyyy"
     },
     {
         "ParameterKey": "BizUnit",
